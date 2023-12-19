@@ -4,6 +4,7 @@ using Laboration2.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace Laboration2.Controllers
 {
@@ -11,31 +12,60 @@ namespace Laboration2.Controllers
     [ApiController]
     public class LoanController : ControllerBase
     {
+
         [HttpGet]
-        public async Task<ActionResult<List<Book>>> GetBooks()
+        public async Task<ActionResult<List<Loan>>> GetLoans()
         {
             using var context = new BookDbContext();
-            var book = await context.Books.Select(b => new BookDto
+            var l = await context.Loans.AsNoTracking().Select(x => new LoanDto()
             {
-                Id = b.Id,
-                Title = b.Title,
-                Isbn = b.Isbn,
-                ReleaseYear = b.ReleaseYear
+                Id = x.Id,
+                LoanDate = x.LoanDate,
+                ReturnDate = x.ReturnDate,
+                Borrower = $"{x.Borrower.FirstName} {x.Borrower.LastName}",
+                Book = x.Book.Title
             }).ToListAsync();
-            return Ok(book);
+            return Ok(l);
         }
+
         [HttpPost]
-        public async Task AddBook(BookRequest request)
+        public async Task<ActionResult> AddLoan(int bookId, int borrowerId)
         {
             using var context = new BookDbContext();
-            Book book = new()
+            var book = context.Books.Find(bookId);
+            var borrower = context.Borrowers.Find(borrowerId);
+
+            if (book is null) return NotFound("No book found");
+            if (borrower is null) return NotFound("No borrower found");
+
+            Loan loan = new()
             {
-                Title = request.Title,
-                Isbn = request.Isbn,
-                ReleaseYear = request.ReleaseYear
+                LoanDate = DateTime.Now,
+                Book = book,
+                Borrower = borrower
             };
-            context.Books.Add(book);
+
+            book.Available = false;
+            context.Add(loan);
             await context.SaveChangesAsync();
+            return Ok(loan);
         }
+
+        [HttpPut]
+        public async Task<ActionResult> ReturnLoan(int id)
+        {
+            using var context = new BookDbContext();
+            var loan = context.Loans.Find(id);
+            if (loan is null) return NotFound();
+            
+            var book = context.Books.Find(loan.BookId);
+            if (book is null) return NotFound();
+            
+            book.Available = true; 
+            loan.ReturnDate = DateTime.Now;
+
+            return Ok();
+        }
+
     }
 }

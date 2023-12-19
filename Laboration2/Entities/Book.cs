@@ -6,5 +6,5 @@ public class Book
     public string Title { get; set; } = string.Empty;
     public long Isbn { get; set; }
     public int ReleaseYear { get; set; }
-
+    public bool Available { get; set; } = true;
 }
