@@ -26,7 +26,7 @@ namespace Laboration2.Controllers
         }
 
         [HttpPost]
-        public async Task AddBorrower (BorrowerRequest request)
+        public async Task<ActionResult<Borrower>> AddBorrower (BorrowerRequest request)
         {
             using var context = new BookDbContext();
             var borrower = new Borrower()
@@ -37,6 +37,20 @@ namespace Laboration2.Controllers
             };
             context.Add(borrower);
             await context.SaveChangesAsync();
+            return Ok(borrower);
+        }
+        [HttpDelete]
+        public async Task<ActionResult<Borrower>> DeleteBorrower(int id)
+        {
+            using var context = new BookDbContext();
+            var borrower = context.Borrowers.Find(id);
+            if (borrower is not null)
+            {
+                context.Borrowers.Remove(borrower);
+                await context.SaveChangesAsync();
+                return Ok($"{borrower.FirstName} {borrower.LastName} was deleted from the system.");
+            }
+            return NotFound();
         }
     }
 }

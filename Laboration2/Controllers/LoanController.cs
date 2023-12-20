@@ -17,7 +17,7 @@ namespace Laboration2.Controllers
         public async Task<ActionResult<List<Loan>>> GetLoans()
         {
             using var context = new BookDbContext();
-            var l = await context.Loans.AsNoTracking().Select(x => new LoanDto()
+            var loan = await context.Loans.AsNoTracking().Select(x => new LoanDto()
             {
                 Id = x.Id,
                 LoanDate = x.LoanDate,
@@ -25,7 +25,7 @@ namespace Laboration2.Controllers
                 Borrower = $"{x.Borrower.FirstName} {x.Borrower.LastName}",
                 Book = x.Book.Title
             }).ToListAsync();
-            return Ok(l);
+            return Ok(loan);
         }
 
         [HttpPost]
@@ -37,6 +37,7 @@ namespace Laboration2.Controllers
 
             if (book is null) return NotFound("No book found");
             if (borrower is null) return NotFound("No borrower found");
+            if (!book.Available) return NotFound("Book not available");
 
             Loan loan = new()
             {
@@ -63,7 +64,7 @@ namespace Laboration2.Controllers
             
             book.Available = true; 
             loan.ReturnDate = DateTime.Now;
-
+            await context.SaveChangesAsync();
             return Ok();
         }
 

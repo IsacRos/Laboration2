@@ -15,18 +15,32 @@ namespace Laboration2.Controllers
         public async Task<ActionResult<List<Book>>> GetBooks()
         {
             using var context = new BookDbContext();
-            var book = await context.Books.Select(b => new BookDto
+            var book = await context.Books.AsNoTracking().Select(b => new BookDto
             {
                 Id = b.Id,
                 Title = b.Title,
                 Isbn = b.Isbn,
                 ReleaseYear = b.ReleaseYear,
-                Available = b.Available
+                Available = b.Available ? "Book available" : "Book not available"
             }).ToListAsync();
             return Ok(book);
         }
+        [HttpGet("id")]
+        public async Task<ActionResult<Book>> GetBook(int id)
+        {
+            using var context = new BookDbContext();
+            var book = await context.Books.AsNoTracking().Where(x => x.Id == id).Select(b => new BookDto
+            {
+                Id = b.Id,
+                Title = b.Title,
+                Isbn = b.Isbn,
+                ReleaseYear = b.ReleaseYear,
+                Available = b.Available ? "Book available" : "Book not available"
+            }).FirstOrDefaultAsync();
+            return book is not null ? Ok(book) : NotFound();
+        }
         [HttpPost]
-        public async Task AddBook(BookRequest request)
+        public async Task<ActionResult<Book>> AddBook(BookRequest request)
         {
             using var context = new BookDbContext();
             Book book = new()
@@ -37,6 +51,20 @@ namespace Laboration2.Controllers
             };
             context.Books.Add(book);
             await context.SaveChangesAsync();
+            return Ok(book);
+        }
+        [HttpDelete]
+        public async Task<ActionResult<Book>> DeleteBook(int id)
+        {
+            using var context = new BookDbContext();
+            var book = context.Books.Find(id);
+            if(book is not null)
+            {
+                context.Books.Remove(book);
+                await context.SaveChangesAsync();
+                return Ok($"{book.Title} was deleted");
+            }
+            return NotFound();
         }
     }
 }
